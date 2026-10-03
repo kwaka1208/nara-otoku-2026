@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc",
-    "update:municipalities": "node scripts/update-municipalities.ts"
+    "update:municipalities": "node scripts/update-municipalities.ts",
+    "ogp": "node scripts/make-ogp.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

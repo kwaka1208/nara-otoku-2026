@@ -23,6 +23,7 @@ npm install
 | `npm run dev` | 開発サーバー。先に `build:data` を実行し、`http://localhost:5173/<slug>/` を開く |
 | `npm test` | 単体テスト |
 | `npm run typecheck` | 型チェック |
+| `npm run ogp -- <slug>` | SNSで共有されたときの画像（`maps/<slug>/ogp.png`、1200×630）を作る。Chrome を使う |
 | `npm run update:municipalities` | 判定に使う市区町村一覧を国土地理院から取り直す（市町村合併があったとき） |
 
 `build:data` に `--retry-unresolved` を付けると、前回位置が得られなかった住所を問い合わせ直します。
@@ -45,9 +46,24 @@ npm install
   "sourceLabel": "出典の表記",
   "sourceUrl": "https://出典のページ",
   "styleUrl": "https://tiles.openfreemap.org/styles/liberty",  // 省略可
-  "initialView": { "center": [135.8, 34.5], "zoom": 9 }       // 省略時はデータ全体が収まる範囲
+  "initialView": { "center": [135.8, 34.5], "zoom": 9 },      // 省略時はデータ全体が収まる範囲
+  "ogp": { "lines": ["OGP画像に載せる一言", "2行まで"] }        // npm run ogp で使う
 }
 ```
+
+### サイト全体の設定（`site.config.json`）
+
+```json
+{
+  "rootMap": "nara-otoku-2026",
+  "siteUrl": "https://kwaka1208.github.io/nara-otoku-2026/"
+}
+```
+
+- `rootMap`：サイトの直下（`/`）に置く地図。ほかの地図は `/<slug>/` に置く。省略すると、直下には地図の一覧が出る。
+- `siteUrl`：公開URL。SNS向けのタグ（`og:image` など）は絶対URLが必要なので、これがないと画像を出さない。
+
+ビルドのとき、各地図のページにタイトル、説明（`notice`）、OGPのタグを書き込みます。`maps/<slug>/ogp.png` があれば、それを共有用の画像として配置します。
 
 ### CSVの列
 

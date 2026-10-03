@@ -12,5 +12,6 @@
   "notice": "「ならならお得キャンペーン2026」の加盟店を地図にした非公式のマップです。情報は令和8年9月28日時点のもので、店舗の情報や地図上の位置が必ずしも正しいとは限りません。",
   "sourceLabel": "奈良県「ならならお得キャンペーン2026」加盟店舗一覧（令和8年9月28日時点）",
   "sourceUrl": "https://www.pref.nara.lg.jp/n101/p067020.html",
-  "styleUrl": "https://tiles.openfreemap.org/styles/liberty"
+  "styleUrl": "https://tiles.openfreemap.org/styles/liberty",
+  "ogp": { "lines": ["約9,500店を地図で探せる", "現在地から近いお店も"] }
 }

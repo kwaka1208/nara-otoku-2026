@@ -22,6 +22,8 @@ export interface MapConfig {
   categoryLabel?: string;
   styleUrl?: string;
   initialView?: { center: [number, number]; zoom: number };
+  /** SNSで共有されたときの画像（maps/<slug>/ogp.png）に載せる一言 */
+  ogp?: { lines?: string[] };
 }
 
 type Field = 'name' | 'address' | 'lat' | 'lng' | 'category' | 'description' | 'url';

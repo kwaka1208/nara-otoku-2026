@@ -34,8 +34,10 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: unresolved
-          path: dist/*/unresolved.csv
-      - run: rm -f dist/*/unresolved.csv
+          path: dist/**/unresolved.csv
+      - run: |
+          find dist -name unresolved.csv -delete
+          find dist -type d -empty -delete
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
