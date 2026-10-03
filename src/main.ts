@@ -3,8 +3,11 @@ import './styles.css';
 import { setupInfo } from './info.ts';
 import { createShopMap } from './map.ts';
 import { formatCount, renderList } from './panel.ts';
-import { buildIndex, categoriesOf, filterShops, formatHash, inBbox, parseHash, sortForList } from './search.ts';
+import { buildIndex, categoriesOf, distanceM, filterShops, formatHash, inBbox, parseHash, sortForList } from './search.ts';
 import type { ShopCollection, ShopFeature, ViewerConfig } from './types.ts';
+
+/** 現在地からこれより遠くにしか店がなければ、市町村を切り替えない */
+const NEAREST_SHOP_MAX_M = 10_000;
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -121,6 +124,21 @@ async function main() {
     updateHash();
   });
   shopMap.onLocate(updateList);
+  // 現在地ボタンを押したら、いちばん近い店の市町村に切り替える（境界データは持たないので近似）。
+  // 近くに店がなければ県外とみなして切り替えない
+  shopMap.onLocateButton((at) => {
+    let nearest: ShopFeature | undefined;
+    let nearestM = NEAREST_SHOP_MAX_M;
+    for (const f of data.features) {
+      const d = distanceM(at, f.geometry.coordinates);
+      if (d < nearestM) [nearest, nearestM] = [f, d];
+    }
+    const category = nearest?.properties.category;
+    if (!category || !categories.includes(category) || select.value === category) return;
+    select.value = category;
+    // 地図は現在地へ移動中なので、fitTo はしない
+    applyFilter();
+  });
 
   // 開いているページに別のハッシュのURLを貼ったときも、その状態にする
   // （updateHash の replaceState では hashchange は起きない）

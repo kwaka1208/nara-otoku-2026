@@ -26,6 +26,8 @@ export interface ShopMap {
   userLocation(): [number, number] | null;
   /** 現在地が取れたり動いたりしたときに呼ばれる */
   onLocate(listener: () => void): void;
+  /** 現在地ボタンで現在地へ移動したときに1回だけ呼ばれる（追跡中の位置の更新では呼ばれない） */
+  onLocateButton(listener: (location: [number, number]) => void): void;
   /** 表示範囲 [西, 南, 東, 北] */
   bbox(): [number, number, number, number];
 }
@@ -67,9 +69,23 @@ export function createShopMap(container: HTMLElement, config: ViewerConfig, data
     trackUserLocation: true,
   });
   // 位置情報は端末内でのみ使う（並べ替え用に保持するだけで、どこにも送らない）
+  const locateButtonListeners: ((location: [number, number]) => void)[] = [];
+  // ボタンを押してから最初に現在地へ移動したときだけ知らせる
+  let buttonPressed = false;
+  const notifyLocateButton = () => {
+    if (!buttonPressed || !location) return;
+    buttonPressed = false;
+    const at = location;
+    locateButtonListeners.forEach((l) => l(at));
+  };
+  geolocate.on('trackuserlocationstart', () => { buttonPressed = true; });
+  geolocate.on('trackuserlocationend', () => { buttonPressed = false; });
+  // 地図を動かした後に押したときは、新しい位置を待たずに直前の位置へ移動する
+  geolocate.on('userlocationfocus', notifyLocateButton);
   geolocate.on('geolocate', (e) => {
     location = [e.coords.longitude, e.coords.latitude];
     locateListeners.forEach((l) => l());
+    notifyLocateButton();
   });
   map.addControl(geolocate, 'bottom-right');
 
@@ -200,6 +216,7 @@ export function createShopMap(container: HTMLElement, config: ViewerConfig, data
     },
     userLocation: () => location,
     onLocate: (listener) => { locateListeners.push(listener); },
+    onLocateButton: (listener) => { locateButtonListeners.push(listener); },
     bbox: () => map.getBounds().toArray().flat() as [number, number, number, number],
   };
 }
