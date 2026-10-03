@@ -29,11 +29,18 @@ export function searchKey(input: unknown): string {
   return normalizeText(input).toLowerCase().replace(/\s/g, '');
 }
 
-/** ジオコーダーに渡す住所：番地までで切って建物名・階数を落とし、都道府県を補う */
+/**
+ * ジオコーダーに渡す住所：番地までで切って建物名・階数を落とし、都道府県を補う。
+ * 元データによくある誤記（郡を「群」と書く、地名を重ねて書く）もここで直す。
+ */
 export function geoQuery(address: unknown, prefix = ''): string {
-  let s = normalizeText(address);
+  let s = normalizeText(address)
+    // 「北葛城群王寺町」→「北葛城郡王寺町」。直前に郡名・都道府県名があるもの（生駒郡平群町、奈良県平群町）は変えない
+    .replace(/([^\d\s郡都道府県]{2,4})群(?=\s*[^\d\s]{1,5}?[町村])/g, '$1郡');
   const m = s.match(/^\D*?\d+(?:\s*(?:丁目|番地の|番地|番|号|の|-)\s*\d+)*/);
   if (m) s = m[0];
-  s = s.replace(/\s+/g, '');
+  s = s.replace(/\s+/g, '')
+    // 「勾田町勾田町」「大字大字上牧」「曽大根大字曽大根」のような重なりを1つにする
+    .replace(/([^\d-]{2,}?)(?:大字)?\1/g, '$1');
   return prefix && !s.startsWith(prefix) ? prefix + s : s;
 }

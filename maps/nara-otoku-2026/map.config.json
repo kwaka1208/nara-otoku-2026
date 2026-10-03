@@ -1,0 +1,14 @@
+{
+  "title": "奈良県 お店マップ（非公式）",
+  "source": {
+    "url": "https://docs.google.com/spreadsheets/d/1CWz77T1yddmK9hR0Yid7v_PgvG94Bng_ltqYqCgsmTg/export?format=csv&gid=492440998"
+  },
+  "columns": { "name": "店舗名", "address": "店舗住所", "category": "市町村" },
+  "geocode": {
+    "prefix": "奈良県",
+    "bounds": [[135.5, 33.8], [136.3, 34.8]]
+  },
+  "notice": "奈良県の公開資料をもとに個人が作成した非公式の情報です。内容や位置が正確でない場合があります。",
+  "sourceLabel": "奈良県の公開資料（令和8年9月28日時点）",
+  "styleUrl": "https://tiles.openfreemap.org/styles/liberty"
+}
