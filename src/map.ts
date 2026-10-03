@@ -20,6 +20,8 @@ export interface ShopMap {
   setData(data: ShopCollection): void;
   /** 店舗の位置へ移動して吹き出しを開く */
   openShop(feature: ShopFeature): void;
+  /** 店がすべて収まる範囲へ移動する（0件なら何もしない） */
+  fitTo(features: ShopFeature[]): void;
   /** 現在地（取得できていれば） */
   userLocation(): [number, number] | null;
   /** 現在地が取れたり動いたりしたときに呼ばれる */
@@ -191,6 +193,10 @@ export function createShopMap(container: HTMLElement, config: ViewerConfig, data
       const [lng, lat] = feature.geometry.coordinates;
       map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), CLUSTER_MAX_ZOOM + 1) });
       showPopup([lng, lat], shopDetail(feature.properties));
+    },
+    fitTo(features) {
+      const b = dataBounds({ type: 'FeatureCollection', features });
+      if (b) map.fitBounds(b, { padding: 40, maxZoom: 15 });
     },
     userLocation: () => location,
     onLocate: (listener) => { locateListeners.push(listener); },

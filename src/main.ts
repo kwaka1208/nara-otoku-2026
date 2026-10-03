@@ -104,7 +104,11 @@ async function main() {
   toggle.addEventListener('click', () => setPanelOpen(toggle.getAttribute('aria-expanded') !== 'true'));
 
   input.addEventListener('input', debounce(applyFilter, 200));
-  select.addEventListener('change', applyFilter);
+  // 市町村を選んだら、その店が収まる範囲へ移動する（選び直しても画面外で絞り込まれるだけにならないように）
+  select.addEventListener('change', () => {
+    applyFilter();
+    if (select.value) shopMap.fitTo(matched);
+  });
   // Enter で送信してもページを再読み込みしない。スマートフォンではキーボードを閉じて一覧を開く
   byId('search-form').addEventListener('submit', (e) => {
     e.preventDefault();
