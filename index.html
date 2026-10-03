@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>地図</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="map" role="region" aria-label="地図"></div>
+
+    <div class="sidebar">
+      <form class="toolbar" role="search" id="search-form">
+        <div class="toolbar-row">
+          <input id="q" class="search" type="search" placeholder="店名・住所で検索" aria-label="店名・住所で検索"
+            autocomplete="off" enterkeyhint="search" />
+          <button id="info-button" class="icon-button" type="button" aria-label="この地図について" aria-haspopup="dialog">i</button>
+        </div>
+        <div class="toolbar-row">
+          <select id="category" class="category" aria-label="カテゴリで絞り込む"></select>
+          <span id="count" class="count" aria-live="polite"></span>
+        </div>
+      </form>
+
+      <section class="panel" aria-label="一覧">
+        <button id="panel-toggle" class="panel-toggle" type="button" aria-expanded="false" aria-controls="panel-body">
+          <span id="panel-toggle-text">一覧</span>
+        </button>
+        <h2 id="panel-heading" class="panel-heading"></h2>
+        <div id="panel-body" class="panel-body">
+          <p id="panel-note" class="panel-note"></p>
+          <ul id="list" class="list"></ul>
+        </div>
+      </section>
+    </div>
+
+    <dialog id="info" class="info" aria-labelledby="info-title">
+      <form method="dialog">
+        <h1 id="info-title" class="info-title"></h1>
+        <p id="info-notice" class="info-notice"></p>
+        <dl class="info-meta">
+          <div id="info-source-row"><dt>出典</dt><dd id="info-source"></dd></div>
+          <div><dt>データ作成日</dt><dd id="info-built"></dd></div>
+        </dl>
+        <p class="info-legend">
+          <span class="legend-dot" aria-hidden="true"></span>位置が特定できた店
+          <span class="legend-dot approx" aria-hidden="true"></span>おおよその位置の店
+        </p>
+        <p class="info-small">
+          地図：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>、
+          <a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>、
+          <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">© OpenMapTiles</a>
+        </p>
+        <p class="info-small">現在地は、近い店を探すために端末の中だけで使い、どこにも送りません。</p>
+        <button class="primary-button" value="close" autofocus>地図を見る</button>
+      </form>
+    </dialog>
+
+    <p id="status" class="status" role="status">読み込んでいます…</p>
+    <noscript>この地図を見るには JavaScript を有効にしてください。</noscript>
+  </body>
+</html>

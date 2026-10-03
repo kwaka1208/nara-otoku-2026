@@ -16,6 +16,8 @@ export interface MapConfig {
   geocode?: { prefix?: string; bounds?: Bounds };
   notice?: string;
   sourceLabel?: string;
+  /** 絞り込みの見出し（例: 市町村）。省略時は「カテゴリ」 */
+  categoryLabel?: string;
   styleUrl?: string;
   initialView?: { center: [number, number]; zoom: number };
 }
@@ -180,14 +182,25 @@ async function readOverrides(file: string): Promise<Override[]> {
   });
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const slug = args.find((a) => !a.startsWith('--'));
-  if (!slug) throw new Error('使い方: npm run build:data -- <slug> [--retry-unresolved]');
+/** ビューアが読む設定。map.config.json のうち公開してよい項目だけを出す */
+export interface ViewerConfig {
+  title: string;
+  notice?: string;
+  sourceLabel?: string;
+  categoryLabel: string;
+  styleUrl: string;
+  initialView?: { center: [number, number]; zoom: number };
+  /** データを作った日（YYYY-MM-DD） */
+  builtAt: string;
+}
 
-  const root = path.resolve(import.meta.dirname, '..');
-  const mapDir = path.join(root, 'maps', slug);
-  const outDir = path.join(root, 'dist', slug);
+export const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+export const ROOT_DIR = path.resolve(import.meta.dirname, '..');
+
+/** maps/<slug>/ の設定とCSVから、dist/<slug>/ に data.geojson・config.json・unresolved.csv を作る */
+export async function buildMap(slug: string, { retryUnresolved = false } = {}) {
+  const mapDir = path.join(ROOT_DIR, 'maps', slug);
+  const outDir = path.join(ROOT_DIR, 'dist', slug);
   const cacheFile = path.join(mapDir, 'geocode-cache.json');
   const config: MapConfig = JSON.parse(await readFile(path.join(mapDir, 'map.config.json'), 'utf8'));
 
@@ -209,7 +222,7 @@ async function main() {
     fetchHits: createGsiFetcher({
       onRetry: (query, e, ms) => console.log(`  再試行（${ms / 1000}秒後）: ${query}: ${e instanceof Error ? e.message : e}`),
     }),
-    retryUnresolved: args.includes('--retry-unresolved'),
+    retryUnresolved,
     onFetched: async (query, hits) => {
       count++;
       if (count % 50 === 0) {
@@ -228,6 +241,16 @@ async function main() {
   await mkdir(outDir, { recursive: true });
   await writeFile(path.join(outDir, 'data.geojson'), JSON.stringify({ type: 'FeatureCollection', features }));
   await writeFile(path.join(outDir, 'unresolved.csv'), '﻿' + stringify(unresolved, { header: true }));
+  const viewerConfig: ViewerConfig = {
+    title: config.title,
+    notice: config.notice,
+    sourceLabel: config.sourceLabel,
+    categoryLabel: config.categoryLabel ?? 'カテゴリ',
+    styleUrl: config.styleUrl ?? DEFAULT_STYLE_URL,
+    initialView: config.initialView,
+    builtAt: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }),
+  };
+  await writeFile(path.join(outDir, 'config.json'), JSON.stringify(viewerConfig, null, 2));
 
   console.log(`
 ${config.title}（${slug}）
@@ -239,6 +262,13 @@ ${config.title}（${slug}）
   ─────────────
   地図に表示     ${features.length}（うち概略位置 ${stats.approx}）
   未解決         ${stats.unresolved} → dist/${slug}/unresolved.csv${stale.length ? `\n  （使われなくなったキャッシュ ${stale.length}件を削除）` : ''}`);
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const slug = args.find((a) => !a.startsWith('--'));
+  if (!slug) throw new Error('使い方: npm run build:data -- <slug> [--retry-unresolved]');
+  await buildMap(slug, { retryUnresolved: args.includes('--retry-unresolved') });
 }
 
 if (import.meta.filename === path.resolve(process.argv[1] ?? '')) {
