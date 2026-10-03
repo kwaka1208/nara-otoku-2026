@@ -1,0 +1,52 @@
+# main に push したら、テストしてビルドし、GitHub Pages に公開する。
+# CSV はビルドのたびに取得し直す。新しい住所があれば国土地理院の住所検索に問い合わせる
+# （リポジトリにある geocode-cache.json を使うので、問い合わせるのは新しい住所だけ）。
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # 未解決の一覧は作業用の資料なので公開しない（Actions の成果物として残す）
+      - uses: actions/upload-artifact@v7
+        with:
+          name: unresolved
+          path: dist/*/unresolved.csv
+      - run: rm -f dist/*/unresolved.csv
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

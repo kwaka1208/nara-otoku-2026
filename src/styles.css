@@ -320,6 +320,10 @@ html, body {
   margin: 0;
 }
 
+.info-meta a {
+  color: var(--color-accent);
+}
+
 .info-legend {
   font-size: 14px;
 }

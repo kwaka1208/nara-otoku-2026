@@ -16,6 +16,8 @@ export interface MapConfig {
   geocode?: { prefix?: string; bounds?: Bounds };
   notice?: string;
   sourceLabel?: string;
+  /** 出典のページ（http/https） */
+  sourceUrl?: string;
   /** 絞り込みの見出し（例: 市町村）。省略時は「カテゴリ」 */
   categoryLabel?: string;
   styleUrl?: string;
@@ -187,6 +189,7 @@ export interface ViewerConfig {
   title: string;
   notice?: string;
   sourceLabel?: string;
+  sourceUrl?: string;
   categoryLabel: string;
   styleUrl: string;
   initialView?: { center: [number, number]; zoom: number };
@@ -245,6 +248,7 @@ export async function buildMap(slug: string, { retryUnresolved = false } = {}) {
     title: config.title,
     notice: config.notice,
     sourceLabel: config.sourceLabel,
+    sourceUrl: config.sourceUrl && safeUrl(config.sourceUrl),
     categoryLabel: config.categoryLabel ?? 'カテゴリ',
     styleUrl: config.styleUrl ?? DEFAULT_STYLE_URL,
     initialView: config.initialView,

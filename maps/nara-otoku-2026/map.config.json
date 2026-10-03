@@ -1,5 +1,5 @@
 {
-  "title": "奈良県 お店マップ（非公式）",
+  "title": "【非公式】「ならならお得キャンペーン2026」の加盟店マップ",
   "source": {
     "url": "https://docs.google.com/spreadsheets/d/1CWz77T1yddmK9hR0Yid7v_PgvG94Bng_ltqYqCgsmTg/export?format=csv&gid=492440998"
   },
@@ -9,7 +9,8 @@
     "prefix": "奈良県",
     "bounds": [[135.5, 33.8], [136.3, 34.8]]
   },
-  "notice": "奈良県の公開資料をもとに個人が作成した非公式の情報です。内容や位置が正確でない場合があります。",
-  "sourceLabel": "奈良県の公開資料（令和8年9月28日時点）",
+  "notice": "「ならならお得キャンペーン2026」の加盟店を地図にした非公式のマップです。情報は令和8年9月28日時点のもので、店舗の情報や地図上の位置が必ずしも正しいとは限りません。",
+  "sourceLabel": "奈良県「ならならお得キャンペーン2026」加盟店舗一覧（令和8年9月28日時点）",
+  "sourceUrl": "https://www.pref.nara.lg.jp/n101/p067020.html",
   "styleUrl": "https://tiles.openfreemap.org/styles/liberty"
 }

@@ -9,8 +9,19 @@ export function setupInfo(config: ViewerConfig) {
   byId('info-title').textContent = config.title;
   byId('info-notice').textContent = config.notice ?? '';
   byId('info-notice').hidden = !config.notice;
-  byId('info-source').textContent = config.sourceLabel ?? '';
-  byId('info-source-row').hidden = !config.sourceLabel;
+  const source = byId('info-source');
+  const label = config.sourceLabel ?? config.sourceUrl ?? '';
+  if (config.sourceUrl) {
+    const a = document.createElement('a');
+    a.href = config.sourceUrl; // データ処理の段階で http/https だけに絞ってある
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = label;
+    source.replaceChildren(a);
+  } else {
+    source.textContent = label;
+  }
+  byId('info-source-row').hidden = !label;
   byId('info-built').textContent = config.builtAt;
 
   const open = () => dialog.showModal();
