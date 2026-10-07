@@ -47,6 +47,7 @@ html, body {
 :root {
   --toolbar-h: 96px;
   --handle-h: 48px;
+  --footer-h: 28px;
   --sidebar-w: 360px;
 }
 
@@ -168,7 +169,23 @@ html, body {
 
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
-  bottom: var(--handle-h);
+  bottom: calc(var(--handle-h) + var(--footer-h));
+}
+
+/* フッター。スマートフォンでは一覧の取っ手の下、PC では左の列の一番下 */
+.footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: var(--footer-h);
+  margin-top: auto;
+  padding: 0 12px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.footer a {
+  color: var(--color-muted);
 }
 
 /* ── 配置：PC ── 左に検索と一覧の列、右に地図 */
@@ -357,6 +374,33 @@ html, body {
 
 .info-small a {
   color: inherit;
+}
+
+.info-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.info-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.info-check + .primary-button {
+  margin-top: 12px;
+}
+
+.info-copyright {
+  margin: 12px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .primary-button {
