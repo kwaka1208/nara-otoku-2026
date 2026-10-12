@@ -1,4 +1,4 @@
-// 地図のページの <head> に入れるタグ（タイトル、説明、OGP）。
+// 地図のページの <head> に入れるタグ（タイトル、説明、OGP、canonical）。
 // SNS や検索エンジンは JavaScript を実行しないことが多いので、ビルドのときに静的に書き込む。
 
 export const OGP_IMAGE = 'ogp.png';
@@ -34,6 +34,7 @@ export function headTags({ title, description, pageUrl, hasImage }: MetaOptions)
   return [
     `<title>${escape(title)}</title>`,
     ...tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escape(value)}" />`),
+    ...(pageUrl ? [`<link rel="canonical" href="${escape(pageUrl)}" />`] : []),
   ].join('\n    ');
 }
 

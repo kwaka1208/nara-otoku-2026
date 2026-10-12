@@ -17,6 +17,7 @@ describe('headTags', () => {
     expect(tags).toContain('<title>【非公式】「A&amp;B」の地図</title>');
     expect(tags).toContain('<meta name="description" content="説明 &lt;注意&gt;" />');
     expect(tags).toContain('<meta property="og:url" content="https://example.github.io/repo/" />');
+    expect(tags).toContain('<link rel="canonical" href="https://example.github.io/repo/" />');
     expect(tags).toContain('<meta property="og:image" content="https://example.github.io/repo/ogp.png" />');
     expect(tags).toContain('<meta name="twitter:card" content="summary_large_image" />');
   });
@@ -24,6 +25,7 @@ describe('headTags', () => {
   it('公開URLがなければ og:url と og:image を出さない', () => {
     const tags = headTags({ ...base, hasImage: true });
     expect(tags).not.toContain('og:url');
+    expect(tags).not.toContain('canonical');
     expect(tags).not.toContain('og:image');
     expect(tags).toContain('<meta name="twitter:card" content="summary" />');
   });
