@@ -56,7 +56,7 @@ npm install
 ```json
 {
   "rootMap": "nara-otoku-2026",
-  "siteUrl": "https://kwaka1208.github.io/nara-otoku-2026/"
+  "siteUrl": "https://nara-otoku-2026.crssrds.jp/"
 }
 ```
 
