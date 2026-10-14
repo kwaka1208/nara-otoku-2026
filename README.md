@@ -48,6 +48,12 @@ npm install
   "sourceUrl": "https://出典のページ",
   "styleUrl": "https://tiles.openfreemap.org/styles/liberty",  // 省略可
   "initialView": { "center": [135.8, 34.5], "zoom": 9 },      // 省略時はデータ全体が収まる範囲
+  "areaPage": {                               // 省略するとカテゴリ別の一覧ページを作らない
+    "title": "{category}の店舗一覧（{count}店）",   // {category} と {count} を置き換える
+    "description": "{category}にある{count}店の一覧",
+    "indexTitle": "カテゴリ別の店舗一覧",
+    "indexDescription": "{count}店をカテゴリごとにまとめた一覧"
+  },
   "ogp": { "lines": ["OGP画像に載せる一言", "2行まで"] }        // npm run ogp で使う
 }
 ```
@@ -66,7 +72,9 @@ npm install
 
 ビルドのとき、各地図のページにタイトル、説明（`description`、なければ `notice`）、OGPのタグを書き込みます。情報画面の見出しと注意書きもHTMLに書き込んでおくので、JavaScriptを実行しない検索エンジンにも内容が伝わります。`maps/<slug>/ogp.png` があれば、それを共有用の画像として配置します。
 
-`siteUrl` があれば、検索エンジン向けに `robots.txt` と `sitemap.xml`（各地図のページと、データを作った日）もサイトの直下に出力します。
+`areaPage` があれば、カテゴリ（`category` 列）ごとの店舗一覧を静的なHTMLで作ります。地図は JavaScript で描くので、店名や住所を検索エンジンに伝えるためのページです。置き場所は地図のページからの相対で `area/`（カテゴリの一覧）と `area/<カテゴリ>/`（店名・住所の一覧）で、地図のフッターと情報画面にリンクが出ます。位置が特定できなかった店は載りません。
+
+`siteUrl` があれば、検索エンジン向けに `robots.txt` と `sitemap.xml`（各地図のページ・一覧ページと、データを作った日）もサイトの直下に出力します。
 
 ### CSVの列
 

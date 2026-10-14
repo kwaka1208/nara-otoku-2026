@@ -5,10 +5,11 @@
 // 直下に地図を置かない場合、直下には地図の一覧を出す。
 
 import { existsSync } from 'node:fs';
-import { copyFile, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'vite';
-import { ROOT_DIR, type ViewerConfig, buildMap } from './build-data.ts';
+import { type Feature, type MapConfig, ROOT_DIR, type ViewerConfig, buildMap } from './build-data.ts';
+import { AREA_DIR, areaUrlOf, categoryPage, groupByCategory, indexPage, showAreaLinks } from './lib/area.ts';
 import { OGP_IMAGE, fillInfo, injectHead, pageUrlOf, robotsTxt, sitemapXml } from './lib/meta.ts';
 
 interface SiteConfig {
@@ -51,8 +52,11 @@ for (const slug of slugs) {
   const image = path.join(ROOT_DIR, 'maps', slug, OGP_IMAGE);
   const hasImage = existsSync(image);
   if (hasImage) await copyFile(image, path.join(outDir, OGP_IMAGE));
+  const { areaPage }: MapConfig = JSON.parse(await readFile(path.join(ROOT_DIR, 'maps', slug, 'map.config.json'), 'utf8'));
   const pageUrl = pageUrlOf(site.siteUrl, slug, isRoot);
-  const page = injectHead(fillInfo(isRoot ? html : html.replaceAll('"./assets/', '"../assets/'), config), {
+  let base = fillInfo(isRoot ? html : html.replaceAll('"./assets/', '"../assets/'), config);
+  if (areaPage) base = showAreaLinks(base, config.categoryLabel);
+  const page = injectHead(base, {
     title: config.title,
     description: config.description ?? config.notice,
     pageUrl,
@@ -60,6 +64,7 @@ for (const slug of slugs) {
   });
   await writeFile(path.join(outDir, 'index.html'), page);
   if (pageUrl) pages.push({ url: pageUrl, lastmod: config.builtAt });
+  if (areaPage) await writeAreaPages(outDir, config, areaPage, pageUrl);
 }
 if (!site.rootMap) await writeFile(path.join(distDir, 'index.html'), await mapList(slugs));
 
@@ -71,6 +76,29 @@ if (site.siteUrl) {
 }
 
 console.log(`\nビルドしました: ${slugs.map((s) => (s === site.rootMap ? `dist/（${s}）` : `dist/${s}/`)).join(', ')}`);
+
+/** カテゴリごとの店舗一覧ページを <地図のフォルダ>/area/ に作り、サイトマップに加える */
+async function writeAreaPages(outDir: string, config: ViewerConfig, areaPage: NonNullable<MapConfig['areaPage']>, mapPageUrl?: string) {
+  const { features }: { features: Feature[] } = JSON.parse(await readFile(path.join(outDir, 'data.geojson'), 'utf8'));
+  const groups = groupByCategory(features);
+  const areaDir = path.join(outDir, AREA_DIR);
+  await rm(areaDir, { recursive: true, force: true });
+  const ctx = {
+    config: areaPage, mapTitle: config.title, notice: config.notice, sourceLabel: config.sourceLabel,
+    sourceUrl: config.sourceUrl, categoryLabel: config.categoryLabel, builtAt: config.builtAt,
+  };
+  const indexUrl = areaUrlOf(mapPageUrl);
+  await mkdir(areaDir, { recursive: true });
+  await writeFile(path.join(areaDir, 'index.html'), indexPage(groups, { ...ctx, pageUrl: indexUrl }));
+  if (indexUrl) pages.push({ url: indexUrl, lastmod: config.builtAt });
+  for (const group of groups) {
+    const url = areaUrlOf(mapPageUrl, group.dir);
+    await mkdir(path.join(areaDir, group.dir), { recursive: true });
+    await writeFile(path.join(areaDir, group.dir, 'index.html'), categoryPage(group, { ...ctx, pageUrl: url }));
+    if (url) pages.push({ url, lastmod: config.builtAt });
+  }
+  console.log(`  ${config.categoryLabel}別の一覧  ${groups.length}ページ → ${path.relative(ROOT_DIR, areaDir)}/`);
+}
 
 /** サイトの直下に置く地図の一覧 */
 async function mapList(slugs: string[]): Promise<string> {

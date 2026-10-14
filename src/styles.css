@@ -177,6 +177,7 @@ html, body {
   flex: none;
   display: flex;
   align-items: center;
+  gap: 16px;
   height: var(--footer-h);
   margin-top: auto;
   padding: 0 12px;

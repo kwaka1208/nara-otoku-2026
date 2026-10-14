@@ -11,7 +11,7 @@ export interface MetaOptions {
   hasImage: boolean;
 }
 
-const escape = (s: string) => s.replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[c]};`);
+export const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[c]};`);
 
 export function headTags({ title, description, pageUrl, hasImage }: MetaOptions): string {
   const tags: [string, string, string][] = [];
@@ -32,9 +32,9 @@ export function headTags({ title, description, pageUrl, hasImage }: MetaOptions)
   }
   meta('name', 'twitter:card', withImage ? 'summary_large_image' : 'summary');
   return [
-    `<title>${escape(title)}</title>`,
-    ...tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escape(value)}" />`),
-    ...(pageUrl ? [`<link rel="canonical" href="${escape(pageUrl)}" />`] : []),
+    `<title>${escapeHtml(title)}</title>`,
+    ...tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`),
+    ...(pageUrl ? [`<link rel="canonical" href="${escapeHtml(pageUrl)}" />`] : []),
   ].join('\n    ');
 }
 
@@ -57,8 +57,8 @@ export function pageUrlOf(siteUrl: string | undefined, slug: string, isRoot: boo
  */
 export function fillInfo(html: string, { title, notice }: { title: string; notice?: string }): string {
   return html
-    .replace(/(<h1 id="info-title"[^>]*>)(<\/h1>)/, (_, open, close) => open + escape(title) + close)
-    .replace(/(<p id="info-notice"[^>]*>)(<\/p>)/, (_, open, close) => open + escape(notice ?? '') + close);
+    .replace(/(<h1 id="info-title"[^>]*>)(<\/h1>)/, (_, open, close) => open + escapeHtml(title) + close)
+    .replace(/(<p id="info-notice"[^>]*>)(<\/p>)/, (_, open, close) => open + escapeHtml(notice ?? '') + close);
 }
 
 /** robots.txt。すべてのクローラーに公開し、サイトマップの場所を伝える */
@@ -70,7 +70,7 @@ export function robotsTxt(siteUrl: string): string {
 /** sitemap.xml。lastmod にはデータを作った日（YYYY-MM-DD）を入れる */
 export function sitemapXml(pages: { url: string; lastmod?: string }[]): string {
   const urls = pages.map(({ url, lastmod }) =>
-    `  <url><loc>${escape(url)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`);
+    `  <url><loc>${escapeHtml(url)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.join('\n')}

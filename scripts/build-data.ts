@@ -7,6 +7,7 @@ import path from 'node:path';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
 import { type Bounds, type GsiHit, classifyGsiResult, createGsiFetcher, hasStreetNumber, inBounds } from './lib/geocode.ts';
+import type { AreaPageConfig } from './lib/area.ts';
 import { geoQuery, normalizeText } from './lib/normalize.ts';
 
 export interface MapConfig {
@@ -26,6 +27,8 @@ export interface MapConfig {
   initialView?: { center: [number, number]; zoom: number };
   /** SNSで共有されたときの画像（maps/<slug>/ogp.png）に載せる一言 */
   ogp?: { lines?: string[] };
+  /** カテゴリごとの店舗一覧ページ（area/）。省略すると作らない */
+  areaPage?: AreaPageConfig;
 }
 
 type Field = 'name' | 'address' | 'lat' | 'lng' | 'category' | 'description' | 'url';
