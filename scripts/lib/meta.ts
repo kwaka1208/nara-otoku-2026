@@ -119,3 +119,47 @@ ${urls.join('\n')}
 </urlset>
 `;
 }
+
+/** llms.txt に載せる地図1つ分。URLはすべて絶対URL */
+export interface LlmsMap {
+  title: string;
+  description?: string;
+  notice?: string;
+  url: string;
+  sourceLabel?: string;
+  sourceUrl?: string;
+  builtAt: string;
+  /** カテゴリ別の一覧ページ */
+  areas?: { label: string; url: string; items: { name: string; url: string; count: number }[] };
+}
+
+/**
+ * llms.txt（https://llmstxt.org/）。AIがサイトの中身と各ページの場所をつかむための案内。
+ * 地図が1つ（または直下に置く地図がある）ならその地図の名前を見出しにする
+ */
+export function llmsTxt(maps: LlmsMap[], siteTitle: string): string {
+  const single = maps.length === 1;
+  const h = single ? '##' : '###';
+  const link = (label: string, url: string, note: string) => `- [${label}](${url}): ${note}`;
+  const sections = maps.map((m) => [
+    // 地図が1つなら説明はサイトの要約（> …）に出すので、ここでは繰り返さない
+    ...(single ? [] : [`## ${m.title}`, '', ...(m.description ? [m.description, ''] : [])]),
+    ...(m.notice ? [`注意: ${m.notice}`, ''] : []),
+    ...(m.sourceLabel || m.sourceUrl
+      ? [`出典: ${m.sourceUrl ? `[${m.sourceLabel ?? m.sourceUrl}](${m.sourceUrl})` : m.sourceLabel}`, ''] : []),
+    `データ作成日: ${m.builtAt}`,
+    '',
+    `${h} ページ`,
+    '',
+    link('地図', m.url, '店名・住所で検索でき、現在地から近い順に並べられる（JavaScriptで表示）'),
+    ...(m.areas ? [
+      link(`${m.areas.label}別の一覧`, m.areas.url, '店名と住所を静的なHTMLでまとめたページ'),
+      '',
+      `${h} ${m.areas.label}別の一覧`,
+      '',
+      ...m.areas.items.map((a) => link(a.name, a.url, `${a.count.toLocaleString('ja-JP')}件`)),
+    ] : []),
+  ].join('\n'));
+  const summary = single ? maps[0].description : undefined;
+  return [`# ${siteTitle}`, '', ...(summary ? [`> ${summary}`, ''] : []), sections.join('\n\n')].join('\n') + '\n';
+}

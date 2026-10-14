@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { breadcrumbData, fillInfo, headTags, injectHead, jsonLd, pageUrlOf, robotsTxt, sitemapXml, webApplicationData } from '../scripts/lib/meta';
+import { breadcrumbData, fillInfo, headTags, injectHead, jsonLd, llmsTxt, pageUrlOf, robotsTxt, sitemapXml, webApplicationData } from '../scripts/lib/meta';
 
 describe('pageUrlOf', () => {
   it('直下の地図はサイトのURL、それ以外は slug のフォルダ', () => {
@@ -114,5 +114,31 @@ describe('breadcrumbData', () => {
       { '@type': 'ListItem', position: 1, name: 'A', item: 'https://example.com/' },
       { '@type': 'ListItem', position: 2, name: 'B' },
     ]);
+  });
+});
+
+describe('llmsTxt', () => {
+  const map = {
+    title: '店の地図', description: '店を探せる地図', notice: '非公式です', url: 'https://example.com/',
+    sourceLabel: '県の一覧', sourceUrl: 'https://example.com/src', builtAt: '2026-10-15',
+    areas: { label: '市町村', url: 'https://example.com/area/', items: [{ name: '奈良市', url: 'https://example.com/area/x/', count: 3245 }] },
+  };
+
+  it('地図が1つなら、その名前と説明を見出しと要約にし、各ページへリンクする', () => {
+    const txt = llmsTxt([map], '店の地図');
+    expect(txt.startsWith('# 店の地図\n\n> 店を探せる地図\n\n注意: 非公式です\n')).toBe(true);
+    expect(txt.match(/店を探せる地図/g)).toHaveLength(1);
+    expect(txt).toContain('出典: [県の一覧](https://example.com/src)');
+    expect(txt).toContain('データ作成日: 2026-10-15');
+    expect(txt).toContain('- [地図](https://example.com/): ');
+    expect(txt).toContain('- [市町村別の一覧](https://example.com/area/): ');
+    expect(txt).toContain('## 市町村別の一覧\n\n- [奈良市](https://example.com/area/x/): 3,245件');
+  });
+
+  it('地図が複数なら、地図ごとに見出しを分ける', () => {
+    const txt = llmsTxt([map, { title: '別の地図', url: 'https://example.com/b/', builtAt: '2026-10-15' }], '地図の一覧');
+    expect(txt.startsWith('# 地図の一覧\n\n## 店の地図\n\n店を探せる地図\n')).toBe(true);
+    expect(txt).toContain('### 市町村別の一覧');
+    expect(txt).toContain('## 別の地図\n\nデータ作成日: 2026-10-15\n\n### ページ\n\n- [地図](https://example.com/b/): ');
   });
 });

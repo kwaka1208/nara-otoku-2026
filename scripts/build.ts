@@ -10,7 +10,9 @@ import path from 'node:path';
 import { build } from 'vite';
 import { type Feature, type MapConfig, ROOT_DIR, type ViewerConfig, buildMap } from './build-data.ts';
 import { AREA_DIR, areaUrlOf, categoryPage, groupByCategory, indexPage, showAreaLinks } from './lib/area.ts';
-import { OGP_IMAGE, type Publisher, fillInfo, injectHead, pageUrlOf, robotsTxt, sitemapXml, webApplicationData } from './lib/meta.ts';
+import {
+  type LlmsMap, OGP_IMAGE, type Publisher, fillInfo, injectHead, llmsTxt, pageUrlOf, robotsTxt, sitemapXml, webApplicationData,
+} from './lib/meta.ts';
 
 interface SiteConfig {
   /** サイトの直下に置く地図の slug */
@@ -41,6 +43,7 @@ const html = await readFile(path.join(distDir, 'index.html'), 'utf8');
 if (!site.siteUrl) console.warn('site.config.json に siteUrl がないので、OGP画像（og:image）を出しません');
 
 const pages: { url: string; lastmod?: string }[] = [];
+const llmsMaps: LlmsMap[] = [];
 for (const slug of slugs) {
   const isRoot = slug === site.rootMap;
   const outDir = isRoot ? distDir : path.join(distDir, slug);
@@ -68,7 +71,13 @@ for (const slug of slugs) {
   });
   await writeFile(path.join(outDir, 'index.html'), page);
   if (pageUrl) pages.push({ url: pageUrl, lastmod: config.builtAt });
-  if (areaPage) await writeAreaPages(outDir, config, areaPage, pageUrl);
+  const areas = areaPage ? await writeAreaPages(outDir, config, areaPage, pageUrl) : undefined;
+  if (pageUrl) {
+    llmsMaps.push({
+      title: config.title, description, notice: config.notice, url: pageUrl,
+      sourceLabel: config.sourceLabel, sourceUrl: config.sourceUrl, builtAt: config.builtAt, areas,
+    });
+  }
 }
 if (!site.rootMap) await writeFile(path.join(distDir, 'index.html'), await mapList(slugs));
 
@@ -77,12 +86,16 @@ if (site.siteUrl) {
   if (!site.rootMap) pages.unshift({ url: pageUrlOf(site.siteUrl, '', true)! });
   await writeFile(path.join(distDir, 'robots.txt'), robotsTxt(site.siteUrl));
   await writeFile(path.join(distDir, 'sitemap.xml'), sitemapXml(pages));
+  const rootTitle = llmsMaps.find((m) => m.url === pageUrlOf(site.siteUrl, '', true))?.title;
+  await writeFile(path.join(distDir, 'llms.txt'), llmsTxt(llmsMaps, rootTitle ?? (llmsMaps.length === 1 ? llmsMaps[0].title : '地図の一覧')));
 }
 
 console.log(`\nビルドしました: ${slugs.map((s) => (s === site.rootMap ? `dist/（${s}）` : `dist/${s}/`)).join(', ')}`);
 
-/** カテゴリごとの店舗一覧ページを <地図のフォルダ>/area/ に作り、サイトマップに加える */
-async function writeAreaPages(outDir: string, config: ViewerConfig, areaPage: NonNullable<MapConfig['areaPage']>, mapPageUrl?: string) {
+/** カテゴリごとの店舗一覧ページを <地図のフォルダ>/area/ に作り、サイトマップに加える。公開URLがわかれば llms.txt 用の一覧を返す */
+async function writeAreaPages(
+  outDir: string, config: ViewerConfig, areaPage: NonNullable<MapConfig['areaPage']>, mapPageUrl?: string,
+): Promise<LlmsMap['areas']> {
   const { features }: { features: Feature[] } = JSON.parse(await readFile(path.join(outDir, 'data.geojson'), 'utf8'));
   const groups = groupByCategory(features);
   const areaDir = path.join(outDir, AREA_DIR);
@@ -102,6 +115,12 @@ async function writeAreaPages(outDir: string, config: ViewerConfig, areaPage: No
     if (url) pages.push({ url, lastmod: config.builtAt });
   }
   console.log(`  ${config.categoryLabel}別の一覧  ${groups.length}ページ → ${path.relative(ROOT_DIR, areaDir)}/`);
+  if (!indexUrl) return undefined;
+  return {
+    label: config.categoryLabel,
+    url: indexUrl,
+    items: groups.map((g) => ({ name: g.category, url: areaUrlOf(mapPageUrl, g.dir)!, count: g.features.length })),
+  };
 }
 
 /** サイトの直下に置く地図の一覧 */
