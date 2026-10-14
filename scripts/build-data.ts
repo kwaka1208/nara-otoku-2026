@@ -15,6 +15,8 @@ export interface MapConfig {
   columns: Partial<Record<Field, string>>;
   geocode?: { prefix?: string; bounds?: Bounds };
   notice?: string;
+  /** 検索結果とSNSに出す説明。省略時は notice */
+  description?: string;
   sourceLabel?: string;
   /** 出典のページ（http/https） */
   sourceUrl?: string;
@@ -190,6 +192,7 @@ async function readOverrides(file: string): Promise<Override[]> {
 export interface ViewerConfig {
   title: string;
   notice?: string;
+  description?: string;
   sourceLabel?: string;
   sourceUrl?: string;
   categoryLabel: string;
@@ -249,6 +252,7 @@ export async function buildMap(slug: string, { retryUnresolved = false } = {}) {
   const viewerConfig: ViewerConfig = {
     title: config.title,
     notice: config.notice,
+    description: config.description,
     sourceLabel: config.sourceLabel,
     sourceUrl: config.sourceUrl && safeUrl(config.sourceUrl),
     categoryLabel: config.categoryLabel ?? 'カテゴリ',

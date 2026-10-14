@@ -9,7 +9,7 @@ import { copyFile, readdir, readFile, rename, rm, writeFile } from 'node:fs/prom
 import path from 'node:path';
 import { build } from 'vite';
 import { ROOT_DIR, type ViewerConfig, buildMap } from './build-data.ts';
-import { OGP_IMAGE, injectHead, pageUrlOf } from './lib/meta.ts';
+import { OGP_IMAGE, fillInfo, injectHead, pageUrlOf, robotsTxt, sitemapXml } from './lib/meta.ts';
 
 interface SiteConfig {
   /** サイトの直下に置く地図の slug */
@@ -37,6 +37,7 @@ const html = await readFile(path.join(distDir, 'index.html'), 'utf8');
 
 if (!site.siteUrl) console.warn('site.config.json に siteUrl がないので、OGP画像（og:image）を出しません');
 
+const pages: { url: string; lastmod?: string }[] = [];
 for (const slug of slugs) {
   const isRoot = slug === site.rootMap;
   const outDir = isRoot ? distDir : path.join(distDir, slug);
@@ -50,15 +51,24 @@ for (const slug of slugs) {
   const image = path.join(ROOT_DIR, 'maps', slug, OGP_IMAGE);
   const hasImage = existsSync(image);
   if (hasImage) await copyFile(image, path.join(outDir, OGP_IMAGE));
-  const page = injectHead(isRoot ? html : html.replaceAll('"./assets/', '"../assets/'), {
+  const pageUrl = pageUrlOf(site.siteUrl, slug, isRoot);
+  const page = injectHead(fillInfo(isRoot ? html : html.replaceAll('"./assets/', '"../assets/'), config), {
     title: config.title,
-    description: config.notice,
-    pageUrl: pageUrlOf(site.siteUrl, slug, isRoot),
+    description: config.description ?? config.notice,
+    pageUrl,
     hasImage,
   });
   await writeFile(path.join(outDir, 'index.html'), page);
+  if (pageUrl) pages.push({ url: pageUrl, lastmod: config.builtAt });
 }
 if (!site.rootMap) await writeFile(path.join(distDir, 'index.html'), await mapList(slugs));
+
+// 検索エンジン向け。公開URLがないとサイトマップに絶対URLを書けないので出さない
+if (site.siteUrl) {
+  if (!site.rootMap) pages.unshift({ url: pageUrlOf(site.siteUrl, '', true)! });
+  await writeFile(path.join(distDir, 'robots.txt'), robotsTxt(site.siteUrl));
+  await writeFile(path.join(distDir, 'sitemap.xml'), sitemapXml(pages));
+}
 
 console.log(`\nビルドしました: ${slugs.map((s) => (s === site.rootMap ? `dist/（${s}）` : `dist/${s}/`)).join(', ')}`);
 

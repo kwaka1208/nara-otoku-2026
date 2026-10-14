@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { headTags, injectHead, pageUrlOf } from '../scripts/lib/meta';
+import { fillInfo, headTags, injectHead, pageUrlOf, robotsTxt, sitemapXml } from '../scripts/lib/meta';
 
 describe('pageUrlOf', () => {
   it('直下の地図はサイトのURL、それ以外は slug のフォルダ', () => {
@@ -43,5 +43,33 @@ describe('injectHead', () => {
 
   it('置き換え先がなければ止める', () => {
     expect(() => injectHead('<head></head>', { title: 'T', hasImage: false })).toThrow();
+  });
+});
+
+describe('fillInfo', () => {
+  const html = '<h1 id="info-title" class="info-title"></h1>\n<p id="info-notice" class="info-notice"></p>';
+
+  it('見出しと注意書きを書き込む', () => {
+    expect(fillInfo(html, { title: 'A&B', notice: '<注意>' })).toBe(
+      '<h1 id="info-title" class="info-title">A&amp;B</h1>\n<p id="info-notice" class="info-notice">&lt;注意&gt;</p>');
+  });
+
+  it('注意書きがなければ空のまま', () => {
+    expect(fillInfo(html, { title: 'T' })).toContain('<p id="info-notice" class="info-notice"></p>');
+  });
+});
+
+describe('robotsTxt', () => {
+  it('末尾の / の有無にかかわらず、サイト直下のサイトマップを指す', () => {
+    expect(robotsTxt('https://example.github.io/repo/')).toContain('Sitemap: https://example.github.io/repo/sitemap.xml');
+    expect(robotsTxt('https://example.github.io/repo')).toContain('Sitemap: https://example.github.io/repo/sitemap.xml');
+  });
+});
+
+describe('sitemapXml', () => {
+  it('URLと更新日を並べる', () => {
+    const xml = sitemapXml([{ url: 'https://example.com/', lastmod: '2026-10-15' }, { url: 'https://example.com/a/?x=1&y=2' }]);
+    expect(xml).toContain('<url><loc>https://example.com/</loc><lastmod>2026-10-15</lastmod></url>');
+    expect(xml).toContain('<url><loc>https://example.com/a/?x=1&amp;y=2</loc></url>');
   });
 });

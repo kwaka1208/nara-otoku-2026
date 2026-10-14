@@ -50,3 +50,30 @@ export function pageUrlOf(siteUrl: string | undefined, slug: string, isRoot: boo
   const base = siteUrl.endsWith('/') ? siteUrl : siteUrl + '/';
   return isRoot ? base : new URL(`${slug}/`, base).href;
 }
+
+/**
+ * 情報画面の見出しと注意書きを、HTMLの段階で埋めておく（JavaScriptを実行しない検索エンジン向け）。
+ * 表示のときはビューアが同じ内容で上書きする
+ */
+export function fillInfo(html: string, { title, notice }: { title: string; notice?: string }): string {
+  return html
+    .replace(/(<h1 id="info-title"[^>]*>)(<\/h1>)/, (_, open, close) => open + escape(title) + close)
+    .replace(/(<p id="info-notice"[^>]*>)(<\/p>)/, (_, open, close) => open + escape(notice ?? '') + close);
+}
+
+/** robots.txt。すべてのクローラーに公開し、サイトマップの場所を伝える */
+export function robotsTxt(siteUrl: string): string {
+  const sitemap = new URL('sitemap.xml', siteUrl.endsWith('/') ? siteUrl : siteUrl + '/').href;
+  return `User-agent: *\nAllow: /\n\nSitemap: ${sitemap}\n`;
+}
+
+/** sitemap.xml。lastmod にはデータを作った日（YYYY-MM-DD）を入れる */
+export function sitemapXml(pages: { url: string; lastmod?: string }[]): string {
+  const urls = pages.map(({ url, lastmod }) =>
+    `  <url><loc>${escape(url)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>
+`;
+}

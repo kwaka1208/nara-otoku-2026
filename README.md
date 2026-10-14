@@ -43,6 +43,7 @@ npm install
     "bounds": [[135.5, 33.8], [136.3, 34.8]]  // この範囲外の結果は採用しない [[西, 南], [東, 北]]
   },
   "notice": "初回表示と情報画面に出す注意書き",
+  "description": "検索結果やSNSに出す説明",      // 省略時は notice
   "sourceLabel": "出典の表記",
   "sourceUrl": "https://出典のページ",
   "styleUrl": "https://tiles.openfreemap.org/styles/liberty",  // 省略可
@@ -63,7 +64,9 @@ npm install
 - `rootMap`：サイトの直下（`/`）に置く地図。ほかの地図は `/<slug>/` に置く。省略すると、直下には地図の一覧が出る。
 - `siteUrl`：公開URL。SNS向けのタグ（`og:image` など）は絶対URLが必要なので、これがないと画像を出さない。
 
-ビルドのとき、各地図のページにタイトル、説明（`notice`）、OGPのタグを書き込みます。`maps/<slug>/ogp.png` があれば、それを共有用の画像として配置します。
+ビルドのとき、各地図のページにタイトル、説明（`description`、なければ `notice`）、OGPのタグを書き込みます。情報画面の見出しと注意書きもHTMLに書き込んでおくので、JavaScriptを実行しない検索エンジンにも内容が伝わります。`maps/<slug>/ogp.png` があれば、それを共有用の画像として配置します。
+
+`siteUrl` があれば、検索エンジン向けに `robots.txt` と `sitemap.xml`（各地図のページと、データを作った日）もサイトの直下に出力します。
 
 ### CSVの列
 
