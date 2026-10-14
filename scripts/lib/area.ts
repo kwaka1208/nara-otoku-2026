@@ -4,7 +4,7 @@
 // 置き場所は地図のページからの相対で area/（一覧）と area/<カテゴリ>/（各カテゴリ）。
 
 import type { Feature } from '../build-data.ts';
-import { escapeHtml, headTags } from './meta.ts';
+import { breadcrumbData, escapeHtml, headTags } from './meta.ts';
 
 export const AREA_DIR = 'area';
 
@@ -146,6 +146,10 @@ function page({ title, description, pageUrl, breadcrumb, body }: {
   breadcrumb: [string | null, string][];
   body: string;
 }): string {
+  // 構造化データには絶対URLが要るので、公開URLがわかるときだけ出す
+  const structuredData = pageUrl
+    ? breadcrumbData(breadcrumb.map(([href, name]) => ({ name, url: href ? new URL(href, pageUrl).href : undefined })))
+    : undefined;
   const crumbs = breadcrumb.map(([href, label]) =>
     href ? `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>` : `<li aria-current="page">${escapeHtml(label)}</li>`);
   return `<!doctype html>
@@ -153,7 +157,7 @@ function page({ title, description, pageUrl, breadcrumb, body }: {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    ${headTags({ title, description, pageUrl, hasImage: false })}
+    ${headTags({ title, description, pageUrl, hasImage: false, structuredData })}
     <style>${STYLE}</style>
   </head>
   <body>

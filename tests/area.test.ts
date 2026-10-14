@@ -69,6 +69,15 @@ describe('categoryPage', () => {
     expect(html).toContain('<a href="https://example.com/src" target="_blank" rel="noopener noreferrer">県の一覧</a>');
     expect(html).toContain('<dd>2026-10-15</dd>');
   });
+
+  it('パンくずの構造化データを絶対URLで入れる', () => {
+    const json = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)![1];
+    expect(JSON.parse(json).itemListElement).toEqual([
+      { '@type': 'ListItem', position: 1, name: '地図', item: 'https://example.com/' },
+      { '@type': 'ListItem', position: 2, name: '市町村別の一覧', item: 'https://example.com/area/' },
+      { '@type': 'ListItem', position: 3, name: '奈良市' },
+    ]);
+  });
 });
 
 describe('indexPage', () => {
@@ -79,6 +88,7 @@ describe('indexPage', () => {
     expect(html).toContain(`<a href="./${encodeURIComponent('奈良市')}/">奈良市</a><span class="count">2件</span>`);
     expect(html).toContain(`<a href="./${encodeURIComponent('橿原市')}/">橿原市</a><span class="count">1件</span>`);
     expect(html).not.toContain('canonical');
+    expect(html).not.toContain('application/ld+json');
   });
 });
 

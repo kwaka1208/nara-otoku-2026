@@ -1,4 +1,5 @@
 {
   "rootMap": "nara-otoku-2026",
-  "siteUrl": "https://nara-otoku-2026.crssrds.jp/"
+  "siteUrl": "https://nara-otoku-2026.crssrds.jp/",
+  "publisher": { "name": "crossroads inc.", "url": "https://crssrds.jp/" }
 }

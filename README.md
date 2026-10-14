@@ -63,14 +63,16 @@ npm install
 ```json
 {
   "rootMap": "nara-otoku-2026",
-  "siteUrl": "https://nara-otoku-2026.crssrds.jp/"
+  "siteUrl": "https://nara-otoku-2026.crssrds.jp/",
+  "publisher": { "name": "crossroads inc.", "url": "https://crssrds.jp/" }
 }
 ```
 
 - `rootMap`：サイトの直下（`/`）に置く地図。ほかの地図は `/<slug>/` に置く。省略すると、直下には地図の一覧が出る。
 - `siteUrl`：公開URL。SNS向けのタグ（`og:image` など）は絶対URLが必要なので、これがないと画像を出さない。
+- `publisher`：運営者の名前とURL。構造化データに載せる。省略可。
 
-ビルドのとき、各地図のページにタイトル、説明（`description`、なければ `notice`）、OGPのタグを書き込みます。情報画面の見出しと注意書きもHTMLに書き込んでおくので、JavaScriptを実行しない検索エンジンにも内容が伝わります。`maps/<slug>/ogp.png` があれば、それを共有用の画像として配置します。
+ビルドのとき、各地図のページにタイトル、説明（`description`、なければ `notice`）、OGPのタグを書き込みます。情報画面の見出しと注意書きもHTMLに書き込んでおくので、JavaScriptを実行しない検索エンジンにも内容が伝わります。`maps/<slug>/ogp.png` があれば、それを共有用の画像として配置します。検索エンジン向けの構造化データ（JSON-LD）として、地図のページには `WebApplication`、一覧ページには `BreadcrumbList` を入れます。
 
 `areaPage` があれば、カテゴリ（`category` 列）ごとの店舗一覧を静的なHTMLで作ります。地図は JavaScript で描くので、店名や住所を検索エンジンに伝えるためのページです。置き場所は地図のページからの相対で `area/`（カテゴリの一覧）と `area/<カテゴリ>/`（店名・住所の一覧）で、地図のフッターと情報画面にリンクが出ます。位置が特定できなかった店は載りません。
 

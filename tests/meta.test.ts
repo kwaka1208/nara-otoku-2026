@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fillInfo, headTags, injectHead, pageUrlOf, robotsTxt, sitemapXml } from '../scripts/lib/meta';
+import { breadcrumbData, fillInfo, headTags, injectHead, jsonLd, pageUrlOf, robotsTxt, sitemapXml, webApplicationData } from '../scripts/lib/meta';
 
 describe('pageUrlOf', () => {
   it('直下の地図はサイトのURL、それ以外は slug のフォルダ', () => {
@@ -71,5 +71,48 @@ describe('sitemapXml', () => {
     const xml = sitemapXml([{ url: 'https://example.com/', lastmod: '2026-10-15' }, { url: 'https://example.com/a/?x=1&y=2' }]);
     expect(xml).toContain('<url><loc>https://example.com/</loc><lastmod>2026-10-15</lastmod></url>');
     expect(xml).toContain('<url><loc>https://example.com/a/?x=1&amp;y=2</loc></url>');
+  });
+});
+
+describe('jsonLd', () => {
+  it('@context を付け、</script> で閉じないようにする', () => {
+    const tag = jsonLd({ '@type': 'Thing', name: '</script><b>' });
+    expect(tag).not.toContain('</script><b>');
+    const json = tag.slice('<script type="application/ld+json">'.length, -'</script>'.length);
+    expect(JSON.parse(json)).toEqual({ '@context': 'https://schema.org', '@type': 'Thing', name: '</script><b>' });
+  });
+
+  it('headTags に構造化データを入れる', () => {
+    expect(headTags({ title: 't', hasImage: false, structuredData: { '@type': 'Thing' } })).toContain('<script type="application/ld+json">');
+    expect(headTags({ title: 't', hasImage: false })).not.toContain('ld+json');
+  });
+});
+
+describe('webApplicationData', () => {
+  it('無料のWebアプリとして、URLと運営者を入れる', () => {
+    const data = webApplicationData({
+      title: '地図', description: '説明', pageUrl: 'https://example.com/', publisher: { name: 'crossroads inc.', url: 'https://crssrds.jp/' },
+    });
+    expect(data).toMatchObject({
+      '@type': 'WebApplication', name: '地図', description: '説明', url: 'https://example.com/',
+      offers: { '@type': 'Offer', price: 0, priceCurrency: 'JPY' },
+      publisher: { '@type': 'Organization', name: 'crossroads inc.', url: 'https://crssrds.jp/' },
+    });
+  });
+
+  it('わからない項目は出さない', () => {
+    const data = webApplicationData({ title: '地図' });
+    expect(data).not.toHaveProperty('url');
+    expect(data).not.toHaveProperty('description');
+    expect(data).not.toHaveProperty('publisher');
+  });
+});
+
+describe('breadcrumbData', () => {
+  it('順番を振り、url のないものは item を省く', () => {
+    expect(breadcrumbData([{ name: 'A', url: 'https://example.com/' }, { name: 'B' }]).itemListElement).toEqual([
+      { '@type': 'ListItem', position: 1, name: 'A', item: 'https://example.com/' },
+      { '@type': 'ListItem', position: 2, name: 'B' },
+    ]);
   });
 });

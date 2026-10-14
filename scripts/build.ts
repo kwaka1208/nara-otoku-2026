@@ -10,13 +10,15 @@ import path from 'node:path';
 import { build } from 'vite';
 import { type Feature, type MapConfig, ROOT_DIR, type ViewerConfig, buildMap } from './build-data.ts';
 import { AREA_DIR, areaUrlOf, categoryPage, groupByCategory, indexPage, showAreaLinks } from './lib/area.ts';
-import { OGP_IMAGE, fillInfo, injectHead, pageUrlOf, robotsTxt, sitemapXml } from './lib/meta.ts';
+import { OGP_IMAGE, type Publisher, fillInfo, injectHead, pageUrlOf, robotsTxt, sitemapXml, webApplicationData } from './lib/meta.ts';
 
 interface SiteConfig {
   /** サイトの直下に置く地図の slug */
   rootMap?: string;
   /** サイトの公開URL（例: https://user.github.io/repo/）。OGP の絶対URLに使う */
   siteUrl?: string;
+  /** 運営者。構造化データ（JSON-LD）に載せる */
+  publisher?: Publisher;
 }
 
 const distDir = path.join(ROOT_DIR, 'dist');
@@ -56,11 +58,13 @@ for (const slug of slugs) {
   const pageUrl = pageUrlOf(site.siteUrl, slug, isRoot);
   let base = fillInfo(isRoot ? html : html.replaceAll('"./assets/', '"../assets/'), config);
   if (areaPage) base = showAreaLinks(base, config.categoryLabel);
+  const description = config.description ?? config.notice;
   const page = injectHead(base, {
     title: config.title,
-    description: config.description ?? config.notice,
+    description,
     pageUrl,
     hasImage,
+    structuredData: webApplicationData({ title: config.title, description, pageUrl, publisher: site.publisher }),
   });
   await writeFile(path.join(outDir, 'index.html'), page);
   if (pageUrl) pages.push({ url: pageUrl, lastmod: config.builtAt });

@@ -9,11 +9,19 @@ export interface MetaOptions {
   /** このページの公開URL（https://… で終わりは /）。なければ og:url と og:image は出さない */
   pageUrl?: string;
   hasImage: boolean;
+  /** 構造化データ（JSON-LD）。schema.org の @context は自動で付ける */
+  structuredData?: Record<string, unknown>;
+}
+
+/** 運営者。site.config.json の publisher */
+export interface Publisher {
+  name: string;
+  url?: string;
 }
 
 export const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[c]};`);
 
-export function headTags({ title, description, pageUrl, hasImage }: MetaOptions): string {
+export function headTags({ title, description, pageUrl, hasImage, structuredData }: MetaOptions): string {
   const tags: [string, string, string][] = [];
   const meta = (attr: 'name' | 'property', key: string, value: string) => tags.push([attr, key, value]);
   if (description) meta('name', 'description', description);
@@ -35,7 +43,41 @@ export function headTags({ title, description, pageUrl, hasImage }: MetaOptions)
     `<title>${escapeHtml(title)}</title>`,
     ...tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`),
     ...(pageUrl ? [`<link rel="canonical" href="${escapeHtml(pageUrl)}" />`] : []),
+    ...(structuredData ? [jsonLd(structuredData)] : []),
   ].join('\n    ');
+}
+
+/** JSON-LD の <script>。中身に </script> があっても閉じないよう、< を \u003c にする */
+export function jsonLd(data: Record<string, unknown>): string {
+  const json = JSON.stringify({ '@context': 'https://schema.org', ...data }).replace(/</g, '\\u003c');
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
+/** 地図のページの構造化データ。無料で使えるWebアプリとして伝える */
+export function webApplicationData({ title, description, pageUrl, publisher }: {
+  title: string; description?: string; pageUrl?: string; publisher?: Publisher;
+}): Record<string, unknown> {
+  return {
+    '@type': 'WebApplication',
+    name: title,
+    ...(description && { description }),
+    ...(pageUrl && { url: pageUrl }),
+    applicationCategory: 'TravelApplication',
+    operatingSystem: 'Web',
+    inLanguage: 'ja',
+    offers: { '@type': 'Offer', price: 0, priceCurrency: 'JPY' },
+    ...(publisher && { publisher: { '@type': 'Organization', name: publisher.name, ...(publisher.url && { url: publisher.url }) } }),
+  };
+}
+
+/** パンくずの構造化データ。url は絶対URL。現在のページは url を省略してよい */
+export function breadcrumbData(items: { name: string; url?: string }[]): Record<string, unknown> {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map(({ name, url }, i) => ({
+      '@type': 'ListItem', position: i + 1, name, ...(url && { item: url }),
+    })),
+  };
 }
 
 /** ビルドした index.html の <title> を、タイトルと説明・OGPのタグに置き換える */
