@@ -4,7 +4,7 @@
 // 置き場所は地図のページからの相対で area/（一覧）と area/<カテゴリ>/（各カテゴリ）。
 
 import type { Feature } from '../build-data.ts';
-import { breadcrumbData, escapeHtml, headTags } from './meta.ts';
+import { breadcrumbData, collectionPageData, escapeHtml, headTags } from './meta.ts';
 
 export const AREA_DIR = 'area';
 
@@ -81,8 +81,8 @@ export function showAreaLinks(html: string, categoryLabel: string): string {
     .replace(/(data-area-link[^>]*?) hidden/g, '$1');
 }
 
-/** 各カテゴリのページ（area/<dir>/index.html） */
-export function categoryPage(group: AreaGroup, ctx: PageContext): string {
+/** 各カテゴリのページ（area/<dir>/index.html）。groups を渡すと、ほかのカテゴリのページへのリンクを並べる */
+export function categoryPage(group: AreaGroup, ctx: PageContext, groups: AreaGroup[] = []): string {
   const vars = { category: group.category, count: group.features.length };
   const title = fillTemplate(ctx.config.title, vars);
   const description = ctx.config.description && fillTemplate(ctx.config.description, vars);
@@ -93,6 +93,10 @@ export function categoryPage(group: AreaGroup, ctx: PageContext): string {
       </li>`);
   return page({
     title, description, pageUrl: ctx.pageUrl,
+    collection: ctx.pageUrl ? collectionPageData({
+      title, description, pageUrl: ctx.pageUrl, about: group.category, count: group.features.length,
+      dateModified: ctx.builtAt, sourceUrl: ctx.sourceUrl,
+    }) : undefined,
     breadcrumb: [['../../', ctx.mapTitle], ['../', `${ctx.categoryLabel}別の一覧`], [null, group.category]],
     body: `    <h1>${escapeHtml(title)}</h1>
     ${description ? `<p>${escapeHtml(description)}</p>` : ''}
@@ -101,8 +105,18 @@ export function categoryPage(group: AreaGroup, ctx: PageContext): string {
     <ul class="shops">
 ${items.join('\n')}
     </ul>
-${footer(ctx)}`,
+${otherAreas(group, groups, ctx.categoryLabel)}${footer(ctx)}`,
   });
+}
+
+/** ほかのカテゴリのページへのリンク。ページ同士をつないで、検索エンジンがたどりやすくする */
+function otherAreas(current: AreaGroup, groups: AreaGroup[], categoryLabel: string): string {
+  const others = groups.filter((g) => g.dir !== current.dir);
+  if (!others.length) return '';
+  const items = others.map((g) => `<li><a href="../${escapeHtml(encodeURIComponent(g.dir))}/">${escapeHtml(g.category)}</a></li>`);
+  return `    <h2>ほかの${escapeHtml(categoryLabel)}</h2>
+    <ul class="others">${items.join('')}</ul>
+`;
 }
 
 /** 一覧ページ（area/index.html） */
@@ -112,8 +126,13 @@ export function indexPage(groups: AreaGroup[], ctx: PageContext): string {
   const description = ctx.config.indexDescription && fillTemplate(ctx.config.indexDescription, { count });
   const items = groups.map((g) =>
     `      <li><a href="./${escapeHtml(encodeURIComponent(g.dir))}/">${escapeHtml(g.category)}</a><span class="count">${g.features.length.toLocaleString('ja-JP')}件</span></li>`);
+  const pageUrl = ctx.pageUrl;
   return page({
-    title, description, pageUrl: ctx.pageUrl,
+    title, description, pageUrl,
+    collection: pageUrl ? collectionPageData({
+      title, description, pageUrl, count: groups.length, dateModified: ctx.builtAt, sourceUrl: ctx.sourceUrl,
+      items: groups.map((g) => ({ name: g.category, url: new URL(`${encodeURIComponent(g.dir)}/`, pageUrl).href })),
+    }) : undefined,
     breadcrumb: [['../', ctx.mapTitle], [null, title]],
     body: `    <h1>${escapeHtml(title)}</h1>
     ${description ? `<p>${escapeHtml(description)}</p>` : ''}
@@ -134,21 +153,24 @@ function footer(ctx: PageContext): string {
       ${ctx.notice ? `<p>${escapeHtml(ctx.notice)}</p>` : ''}
       <dl>
         ${source ? `<div><dt>出典</dt><dd>${source}</dd></div>` : ''}
-        <div><dt>データ作成日</dt><dd>${escapeHtml(ctx.builtAt)}</dd></div>
+        <div><dt>データ作成日</dt><dd><time datetime="${escapeHtml(ctx.builtAt)}">${escapeHtml(ctx.builtAt)}</time></dd></div>
       </dl>
       <p><a href="https://crssrds.jp/" target="_blank" rel="noopener noreferrer">© crossroads inc.</a></p>
     </footer>`;
 }
 
-function page({ title, description, pageUrl, breadcrumb, body }: {
+function page({ title, description, pageUrl, collection, breadcrumb, body }: {
   title: string; description?: string; pageUrl?: string;
+  /** 一覧の構造化データ（CollectionPage） */
+  collection?: Record<string, unknown>;
   /** [リンク先（現在のページは null）, 表示名] */
   breadcrumb: [string | null, string][];
   body: string;
 }): string {
   // 構造化データには絶対URLが要るので、公開URLがわかるときだけ出す
   const structuredData = pageUrl
-    ? breadcrumbData(breadcrumb.map(([href, name]) => ({ name, url: href ? new URL(href, pageUrl).href : undefined })))
+    ? [breadcrumbData(breadcrumb.map(([href, name]) => ({ name, url: href ? new URL(href, pageUrl).href : undefined }))),
+      ...(collection ? [collection] : [])]
     : undefined;
   const crumbs = breadcrumb.map(([href, label]) =>
     href ? `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>` : `<li aria-current="page">${escapeHtml(label)}</li>`);
@@ -168,8 +190,8 @@ ${body}
 `;
 }
 
-// 地図のページ（src/styles.css）と同じ色を使う
-const STYLE = `
+// 地図のページ（src/styles.css）と同じ色を使う。404ページでも使う
+export const STYLE = `
 :root{--accent:#c2255c;--text:#212529;--muted:#6c757d;--border:#dee2e6}
 body{margin:0 auto;padding:16px 16px 32px;max-width:720px;color:var(--text);background:#fff;font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.6}
 h1{font-size:1.4rem;line-height:1.4}
@@ -184,6 +206,7 @@ a{color:var(--accent)}
 .shops .address{color:var(--muted);font-size:.875rem}
 .areas li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
 .areas .count{color:var(--muted)}
+.others{display:flex;flex-wrap:wrap;gap:8px 16px;margin:0;padding:0;list-style:none}
 footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border)}
 footer dl div{display:flex;gap:12px}
 footer dt{flex:none;width:7em}

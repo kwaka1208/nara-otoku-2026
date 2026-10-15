@@ -9,8 +9,8 @@ export interface MetaOptions {
   /** このページの公開URL（https://… で終わりは /）。なければ og:url と og:image は出さない */
   pageUrl?: string;
   hasImage: boolean;
-  /** 構造化データ（JSON-LD）。schema.org の @context は自動で付ける */
-  structuredData?: Record<string, unknown>;
+  /** 構造化データ（JSON-LD）。複数あれば1つずつ <script> にする。schema.org の @context は自動で付ける */
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 /** 運営者。site.config.json の publisher */
@@ -43,7 +43,7 @@ export function headTags({ title, description, pageUrl, hasImage, structuredData
     `<title>${escapeHtml(title)}</title>`,
     ...tags.map(([attr, key, value]) => `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`),
     ...(pageUrl ? [`<link rel="canonical" href="${escapeHtml(pageUrl)}" />`] : []),
-    ...(structuredData ? [jsonLd(structuredData)] : []),
+    ...[structuredData ?? []].flat().map(jsonLd),
   ].join('\n    ');
 }
 
@@ -77,6 +77,40 @@ export function breadcrumbData(items: { name: string; url?: string }[]): Record<
     itemListElement: items.map(({ name, url }, i) => ({
       '@type': 'ListItem', position: i + 1, name, ...(url && { item: url }),
     })),
+  };
+}
+
+/**
+ * 一覧ページの構造化データ。何の一覧で、いくつ載っていて、いつのデータかを伝える。
+ * 店ごとの情報は数千件になってページが重くなるので入れない。items を渡すと、載っているページへのリンクとして入れる
+ */
+export function collectionPageData({ title, description, pageUrl, about, count, items, dateModified, sourceUrl }: {
+  title: string; description?: string; pageUrl: string;
+  /** 何についての一覧か（カテゴリ名） */
+  about?: string;
+  count: number;
+  /** url は絶対URL */
+  items?: { name: string; url: string }[];
+  /** YYYY-MM-DD */
+  dateModified: string;
+  sourceUrl?: string;
+}): Record<string, unknown> {
+  return {
+    '@type': 'CollectionPage',
+    name: title,
+    ...(description && { description }),
+    url: pageUrl,
+    inLanguage: 'ja',
+    ...(about && { about: { '@type': 'Place', name: about } }),
+    dateModified,
+    ...(sourceUrl && { isBasedOn: sourceUrl }),
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: count,
+      ...(items && {
+        itemListElement: items.map(({ name, url }, i) => ({ '@type': 'ListItem', position: i + 1, name, url })),
+      }),
+    },
   };
 }
 

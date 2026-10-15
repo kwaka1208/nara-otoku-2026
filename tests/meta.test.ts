@@ -85,6 +85,8 @@ describe('jsonLd', () => {
   it('headTags に構造化データを入れる', () => {
     expect(headTags({ title: 't', hasImage: false, structuredData: { '@type': 'Thing' } })).toContain('<script type="application/ld+json">');
     expect(headTags({ title: 't', hasImage: false })).not.toContain('ld+json');
+    const many = headTags({ title: 't', hasImage: false, structuredData: [{ '@type': 'A' }, { '@type': 'B' }] });
+    expect(many.match(/application\/ld\+json/g)).toHaveLength(2);
   });
 });
 

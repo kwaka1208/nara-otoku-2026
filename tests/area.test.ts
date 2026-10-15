@@ -67,7 +67,7 @@ describe('categoryPage', () => {
     expect(html).toContain(`href="../../#cat=${encodeURIComponent('奈良市')}"`);
     expect(html).toContain('<a href="../">市町村別の一覧</a>');
     expect(html).toContain('<a href="https://example.com/src" target="_blank" rel="noopener noreferrer">県の一覧</a>');
-    expect(html).toContain('<dd>2026-10-15</dd>');
+    expect(html).toContain('<dd><time datetime="2026-10-15">2026-10-15</time></dd>');
   });
 
   it('パンくずの構造化データを絶対URLで入れる', () => {
@@ -77,6 +77,36 @@ describe('categoryPage', () => {
       { '@type': 'ListItem', position: 2, name: '市町村別の一覧', item: 'https://example.com/area/' },
       { '@type': 'ListItem', position: 3, name: '奈良市' },
     ]);
+  });
+
+  it('一覧の構造化データに、カテゴリ・件数・作成日・出典を入れる', () => {
+    const json = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)][1][1];
+    expect(JSON.parse(json)).toMatchObject({
+      '@type': 'CollectionPage',
+      name: '奈良市の店（2店）',
+      url: 'https://example.com/area/%E5%A5%88%E8%89%AF%E5%B8%82/',
+      about: { '@type': 'Place', name: '奈良市' },
+      dateModified: '2026-10-15',
+      isBasedOn: 'https://example.com/src',
+      mainEntity: { '@type': 'ItemList', numberOfItems: 2 },
+    });
+    expect(JSON.parse(json).mainEntity.itemListElement).toBeUndefined();
+  });
+});
+
+describe('categoryPage のほかのカテゴリ', () => {
+  const groups = groupByCategory([shop('a', '奈良市'), shop('b', '橿原市'), shop('c', 'A&B')]);
+
+  it('自分以外のカテゴリへリンクする', () => {
+    const html = categoryPage(groups[0], ctx, groups);
+    expect(html).toContain('<h2>ほかの市町村</h2>');
+    expect(html).toContain(`<ul class="others"><li><a href="../${encodeURIComponent('橿原市')}/">橿原市</a></li><li><a href="../A%26B/">A&amp;B</a></li></ul>`);
+    expect(html).not.toContain(`<a href="../${encodeURIComponent('奈良市')}/">`);
+  });
+
+  it('ほかにカテゴリがなければ見出しも出さない', () => {
+    expect(categoryPage(groups[0], ctx, [groups[0]])).not.toContain('ほかの市町村');
+    expect(categoryPage(groups[0], ctx)).not.toContain('ほかの市町村');
   });
 });
 
@@ -89,6 +119,25 @@ describe('indexPage', () => {
     expect(html).toContain(`<a href="./${encodeURIComponent('橿原市')}/">橿原市</a><span class="count">1件</span>`);
     expect(html).not.toContain('canonical');
     expect(html).not.toContain('application/ld+json');
+  });
+
+  it('公開URLがわかれば、各カテゴリのページを構造化データに並べる', () => {
+    const groups = groupByCategory([shop('a', '奈良市'), shop('b', '橿原市')]);
+    const html = indexPage(groups, { ...ctx, pageUrl: 'https://example.com/area/' });
+    const json = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)][1][1];
+    expect(JSON.parse(json)).toMatchObject({
+      '@type': 'CollectionPage',
+      dateModified: '2026-10-15',
+      mainEntity: {
+        '@type': 'ItemList',
+        numberOfItems: 2,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: '奈良市', url: 'https://example.com/area/%E5%A5%88%E8%89%AF%E5%B8%82/' },
+          { '@type': 'ListItem', position: 2, name: '橿原市', url: 'https://example.com/area/%E6%A9%BF%E5%8E%9F%E5%B8%82/' },
+        ],
+      },
+    });
+    expect(JSON.parse(json).about).toBeUndefined();
   });
 });
 

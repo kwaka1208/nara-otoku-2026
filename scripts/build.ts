@@ -13,6 +13,7 @@ import { AREA_DIR, areaUrlOf, categoryPage, groupByCategory, indexPage, showArea
 import {
   type LlmsMap, OGP_IMAGE, type Publisher, fillInfo, injectHead, llmsTxt, pageUrlOf, robotsTxt, sitemapXml, webApplicationData,
 } from './lib/meta.ts';
+import { basePathOf, notFoundPage } from './lib/not-found.ts';
 
 interface SiteConfig {
   /** サイトの直下に置く地図の slug */
@@ -44,6 +45,9 @@ if (!site.siteUrl) console.warn('site.config.json に siteUrl がないので、
 
 const pages: { url: string; lastmod?: string }[] = [];
 const llmsMaps: LlmsMap[] = [];
+const basePath = basePathOf(site.siteUrl);
+// 404ページから案内する先。直下に地図を置かないときは、先頭に地図の一覧を入れる
+const notFoundLinks = site.rootMap ? [] : [{ href: basePath, label: '地図の一覧' }];
 for (const slug of slugs) {
   const isRoot = slug === site.rootMap;
   const outDir = isRoot ? distDir : path.join(distDir, slug);
@@ -72,6 +76,9 @@ for (const slug of slugs) {
   await writeFile(path.join(outDir, 'index.html'), page);
   if (pageUrl) pages.push({ url: pageUrl, lastmod: config.builtAt });
   const areas = areaPage ? await writeAreaPages(outDir, config, areaPage, pageUrl) : undefined;
+  const mapPath = isRoot ? basePath : `${basePath}${slug}/`;
+  notFoundLinks.push({ href: mapPath, label: config.title });
+  if (areaPage) notFoundLinks.push({ href: `${mapPath}${AREA_DIR}/`, label: `${config.categoryLabel}別の一覧` });
   if (pageUrl) {
     llmsMaps.push({
       title: config.title, description, notice: config.notice, url: pageUrl,
@@ -80,6 +87,7 @@ for (const slug of slugs) {
   }
 }
 if (!site.rootMap) await writeFile(path.join(distDir, 'index.html'), await mapList(slugs));
+await writeFile(path.join(distDir, '404.html'), notFoundPage(notFoundLinks));
 
 // 検索エンジン向け。公開URLがないとサイトマップに絶対URLを書けないので出さない
 if (site.siteUrl) {
@@ -111,7 +119,7 @@ async function writeAreaPages(
   for (const group of groups) {
     const url = areaUrlOf(mapPageUrl, group.dir);
     await mkdir(path.join(areaDir, group.dir), { recursive: true });
-    await writeFile(path.join(areaDir, group.dir, 'index.html'), categoryPage(group, { ...ctx, pageUrl: url }));
+    await writeFile(path.join(areaDir, group.dir, 'index.html'), categoryPage(group, { ...ctx, pageUrl: url }, groups));
     if (url) pages.push({ url, lastmod: config.builtAt });
   }
   console.log(`  ${config.categoryLabel}別の一覧  ${groups.length}ページ → ${path.relative(ROOT_DIR, areaDir)}/`);
