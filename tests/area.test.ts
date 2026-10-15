@@ -141,6 +141,28 @@ describe('indexPage', () => {
   });
 });
 
+describe('OGP画像', () => {
+  const groups = groupByCategory([shop('a', '奈良市')]);
+  const image = { url: 'https://example.com/ogp.png', alt: '地図' };
+
+  it('一覧ページも各カテゴリのページも、地図と同じ画像を使う', () => {
+    for (const html of [
+      indexPage(groups, { ...ctx, pageUrl: 'https://example.com/area/', image }),
+      categoryPage(groups[0], { ...ctx, pageUrl: 'https://example.com/area/%E5%A5%88%E8%89%AF%E5%B8%82/', image }),
+    ]) {
+      expect(html).toContain('<meta property="og:image" content="https://example.com/ogp.png" />');
+      expect(html).toContain('<meta property="og:image:alt" content="地図" />');
+      expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    }
+  });
+
+  it('画像がなければ og:image を出さない', () => {
+    const html = indexPage(groups, { ...ctx, pageUrl: 'https://example.com/area/' });
+    expect(html).not.toContain('og:image');
+    expect(html).toContain('<meta name="twitter:card" content="summary" />');
+  });
+});
+
 describe('showAreaLinks', () => {
   it('隠してあるリンクを見せ、文言を入れる', () => {
     const html = '<a href="./area/" data-area-link hidden>一覧</a>\n<div data-area-link hidden><dt>一覧</dt><dd><a href="./area/" data-area-link>一覧</a></dd></div>';

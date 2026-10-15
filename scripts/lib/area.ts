@@ -4,7 +4,7 @@
 // 置き場所は地図のページからの相対で area/（一覧）と area/<カテゴリ>/（各カテゴリ）。
 
 import type { Feature } from '../build-data.ts';
-import { breadcrumbData, collectionPageData, escapeHtml, headTags } from './meta.ts';
+import { type MetaOptions, breadcrumbData, collectionPageData, escapeHtml, headTags } from './meta.ts';
 
 export const AREA_DIR = 'area';
 
@@ -36,6 +36,8 @@ interface PageContext {
   builtAt: string;
   /** このページの公開URL。わからなければ canonical などを出さない */
   pageUrl?: string;
+  /** OGP画像。地図と同じものを使う */
+  image?: MetaOptions['image'];
 }
 
 /** カテゴリごとに分ける。順番はデータに出てきた順。カテゴリのない店は入れない */
@@ -92,7 +94,7 @@ export function categoryPage(group: AreaGroup, ctx: PageContext, groups: AreaGro
         ${p.address ? `<span class="address">${escapeHtml(p.address)}</span>` : ''}
       </li>`);
   return page({
-    title, description, pageUrl: ctx.pageUrl,
+    title, description, pageUrl: ctx.pageUrl, image: ctx.image,
     collection: ctx.pageUrl ? collectionPageData({
       title, description, pageUrl: ctx.pageUrl, about: group.category, count: group.features.length,
       dateModified: ctx.builtAt, sourceUrl: ctx.sourceUrl,
@@ -128,7 +130,7 @@ export function indexPage(groups: AreaGroup[], ctx: PageContext): string {
     `      <li><a href="./${escapeHtml(encodeURIComponent(g.dir))}/">${escapeHtml(g.category)}</a><span class="count">${g.features.length.toLocaleString('ja-JP')}件</span></li>`);
   const pageUrl = ctx.pageUrl;
   return page({
-    title, description, pageUrl,
+    title, description, pageUrl, image: ctx.image,
     collection: pageUrl ? collectionPageData({
       title, description, pageUrl, count: groups.length, dateModified: ctx.builtAt, sourceUrl: ctx.sourceUrl,
       items: groups.map((g) => ({ name: g.category, url: new URL(`${encodeURIComponent(g.dir)}/`, pageUrl).href })),
@@ -159,8 +161,8 @@ function footer(ctx: PageContext): string {
     </footer>`;
 }
 
-function page({ title, description, pageUrl, collection, breadcrumb, body }: {
-  title: string; description?: string; pageUrl?: string;
+function page({ title, description, pageUrl, image, collection, breadcrumb, body }: {
+  title: string; description?: string; pageUrl?: string; image?: MetaOptions['image'];
   /** 一覧の構造化データ（CollectionPage） */
   collection?: Record<string, unknown>;
   /** [リンク先（現在のページは null）, 表示名] */
@@ -179,7 +181,7 @@ function page({ title, description, pageUrl, collection, breadcrumb, body }: {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    ${headTags({ title, description, pageUrl, hasImage: false, structuredData })}
+    ${headTags({ title, description, pageUrl, image, structuredData })}
     <style>${STYLE}</style>
   </head>
   <body>

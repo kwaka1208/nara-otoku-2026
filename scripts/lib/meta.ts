@@ -8,7 +8,8 @@ export interface MetaOptions {
   description?: string;
   /** このページの公開URL（https://… で終わりは /）。なければ og:url と og:image は出さない */
   pageUrl?: string;
-  hasImage: boolean;
+  /** OGP画像。url は絶対URL。ほかのページの画像を使ってもよい */
+  image?: { url: string; alt: string };
   /** 構造化データ（JSON-LD）。複数あれば1つずつ <script> にする。schema.org の @context は自動で付ける */
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
@@ -21,7 +22,7 @@ export interface Publisher {
 
 export const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' }[c]};`);
 
-export function headTags({ title, description, pageUrl, hasImage, structuredData }: MetaOptions): string {
+export function headTags({ title, description, pageUrl, image, structuredData }: MetaOptions): string {
   const tags: [string, string, string][] = [];
   const meta = (attr: 'name' | 'property', key: string, value: string) => tags.push([attr, key, value]);
   if (description) meta('name', 'description', description);
@@ -31,12 +32,12 @@ export function headTags({ title, description, pageUrl, hasImage, structuredData
   if (description) meta('property', 'og:description', description);
   if (pageUrl) meta('property', 'og:url', pageUrl);
   // og:image は絶対URLでないと読まないSNSがあるので、公開URLがわかるときだけ出す
-  const withImage = hasImage && !!pageUrl;
+  const withImage = !!image && !!pageUrl;
   if (withImage) {
-    meta('property', 'og:image', new URL(OGP_IMAGE, pageUrl).href);
+    meta('property', 'og:image', image.url);
     meta('property', 'og:image:width', '1200');
     meta('property', 'og:image:height', '630');
-    meta('property', 'og:image:alt', title);
+    meta('property', 'og:image:alt', image.alt);
   }
   meta('name', 'twitter:card', withImage ? 'summary_large_image' : 'summary');
   return [

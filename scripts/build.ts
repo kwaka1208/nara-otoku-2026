@@ -11,7 +11,7 @@ import { build } from 'vite';
 import { type Feature, type MapConfig, ROOT_DIR, type ViewerConfig, buildMap } from './build-data.ts';
 import { AREA_DIR, areaUrlOf, categoryPage, groupByCategory, indexPage, showAreaLinks } from './lib/area.ts';
 import {
-  type LlmsMap, OGP_IMAGE, type Publisher, fillInfo, injectHead, llmsTxt, pageUrlOf, robotsTxt, sitemapXml, webApplicationData,
+  type LlmsMap, type MetaOptions, OGP_IMAGE, type Publisher, fillInfo, injectHead, llmsTxt, pageUrlOf, robotsTxt, sitemapXml, webApplicationData,
 } from './lib/meta.ts';
 import { basePathOf, notFoundPage } from './lib/not-found.ts';
 
@@ -58,11 +58,13 @@ for (const slug of slugs) {
     }
   }
   const config: ViewerConfig = JSON.parse(await readFile(path.join(outDir, 'config.json'), 'utf8'));
-  const image = path.join(ROOT_DIR, 'maps', slug, OGP_IMAGE);
-  const hasImage = existsSync(image);
-  if (hasImage) await copyFile(image, path.join(outDir, OGP_IMAGE));
+  const imageFile = path.join(ROOT_DIR, 'maps', slug, OGP_IMAGE);
+  const hasImage = existsSync(imageFile);
+  if (hasImage) await copyFile(imageFile, path.join(outDir, OGP_IMAGE));
   const { areaPage }: MapConfig = JSON.parse(await readFile(path.join(ROOT_DIR, 'maps', slug, 'map.config.json'), 'utf8'));
   const pageUrl = pageUrlOf(site.siteUrl, slug, isRoot);
+  // 一覧ページも地図と同じ画像を使う
+  const image = hasImage && pageUrl ? { url: new URL(OGP_IMAGE, pageUrl).href, alt: config.title } : undefined;
   let base = fillInfo(isRoot ? html : html.replaceAll('"./assets/', '"../assets/'), config);
   if (areaPage) base = showAreaLinks(base, config.categoryLabel);
   const description = config.description ?? config.notice;
@@ -70,12 +72,12 @@ for (const slug of slugs) {
     title: config.title,
     description,
     pageUrl,
-    hasImage,
+    image,
     structuredData: webApplicationData({ title: config.title, description, pageUrl, publisher: site.publisher }),
   });
   await writeFile(path.join(outDir, 'index.html'), page);
   if (pageUrl) pages.push({ url: pageUrl, lastmod: config.builtAt });
-  const areas = areaPage ? await writeAreaPages(outDir, config, areaPage, pageUrl) : undefined;
+  const areas = areaPage ? await writeAreaPages(outDir, config, areaPage, pageUrl, image) : undefined;
   const mapPath = isRoot ? basePath : `${basePath}${slug}/`;
   notFoundLinks.push({ href: mapPath, label: config.title });
   if (areaPage) notFoundLinks.push({ href: `${mapPath}${AREA_DIR}/`, label: `${config.categoryLabel}別の一覧` });
@@ -103,6 +105,7 @@ console.log(`\nビルドしました: ${slugs.map((s) => (s === site.rootMap ? `
 /** カテゴリごとの店舗一覧ページを <地図のフォルダ>/area/ に作り、サイトマップに加える。公開URLがわかれば llms.txt 用の一覧を返す */
 async function writeAreaPages(
   outDir: string, config: ViewerConfig, areaPage: NonNullable<MapConfig['areaPage']>, mapPageUrl?: string,
+  image?: MetaOptions['image'],
 ): Promise<LlmsMap['areas']> {
   const { features }: { features: Feature[] } = JSON.parse(await readFile(path.join(outDir, 'data.geojson'), 'utf8'));
   const groups = groupByCategory(features);
@@ -110,7 +113,7 @@ async function writeAreaPages(
   await rm(areaDir, { recursive: true, force: true });
   const ctx = {
     config: areaPage, mapTitle: config.title, notice: config.notice, sourceLabel: config.sourceLabel,
-    sourceUrl: config.sourceUrl, categoryLabel: config.categoryLabel, builtAt: config.builtAt,
+    sourceUrl: config.sourceUrl, categoryLabel: config.categoryLabel, builtAt: config.builtAt, image,
   };
   const indexUrl = areaUrlOf(mapPageUrl);
   await mkdir(areaDir, { recursive: true });
